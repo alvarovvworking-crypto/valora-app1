@@ -5,60 +5,116 @@
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
-  background: #f5f7fa;
-  color: #111827;
+  background: #080808;
+  color: white;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
 }
 
 button {
   cursor: pointer;
   border: none;
-  border-radius: 8px;
-  padding: 10px 16px;
-  background: #2563eb;
-  color: white;
+  border-radius: 12px;
+  padding: 12px 18px;
   font-weight: 600;
+  transition: 0.25s;
 }
 
 button:hover {
-  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 input,
 select,
 textarea {
   width: 100%;
-  max-width: 400px;
-  padding: 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  padding: 12px;
   margin-top: 5px;
+
+  background: #111111;
+  color: white;
+
+  border: 1px solid #222222;
+  border-radius: 12px;
+
+  outline: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #8b5cf6;
 }
 
 h1 {
+  font-size: 36px;
   margin-bottom: 20px;
 }
 
 h2 {
+  font-size: 26px;
   margin-bottom: 15px;
 }
 
 h3 {
+  font-size: 18px;
   margin-bottom: 10px;
 }
 
 p {
-  margin-bottom: 8px;
-}
-
-a {
-  text-decoration: none;
+  color: #94a3b8;
+  line-height: 1.6;
 }
 
 .card {
-  background: white;
-  border-radius: 12px;
+  background: #111111;
+  border: 1px solid #222222;
+  border-radius: 20px;
+  padding: 24px;
+}
+
+.metric-card {
+  background: #111111;
+  border: 1px solid #222222;
+  border-radius: 18px;
   padding: 20px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.metric-card:hover {
+  border-color: #8b5cf6;
+}
+
+.primary-btn {
+  background: linear-gradient(
+    135deg,
+    #8b5cf6,
+    #7c3aed
+  );
+  color: white;
+}
+
+.secondary-btn {
+  background: #18181b;
+  color: white;
+  border: 1px solid #27272a;
+}
+
+.accepted {
+  color: #22c55e;
+}
+
+.pending {
+  color: #f59e0b;
+}
+
+.rejected {
+  color: #ef4444;
 }

@@ -1,83 +1,75 @@
 import { useState } from "react";
+import { supabase } from "./supabaseClient";
 
-function PriceCalculator({ onSave }) {
+export default function QuoteForm({ user }) {
   const [client, setClient] = useState("");
   const [project, setProject] = useState("");
+  const [projectType, setProjectType] = useState("");
 
-  const [hours, setHours] = useState(10);
-  const [rate, setRate] = useState(30);
+  const [hours, setHours] = useState(0);
+  const [rate, setRate] = useState(0);
 
-  const [complexity, setComplexity] = useState(1);
+  const [complexity, setComplexity] = useState("");
   const [revisions, setRevisions] = useState(0);
-  const [urgency, setUrgency] = useState(1);
-  const [vat, setVat] = useState(21);
+  const [urgency, setUrgency] = useState("");
 
-  const [projectType, setProjectType] =
-    useState("Landing Page");
+  const [cost, setCost] = useState(0);
+  const [subtotal, setSubtotal] = useState(0);
+  const [vatAmount, setVatAmount] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [profit, setProfit] = useState(0);
 
-  const subtotal =
-    hours * rate * complexity * urgency +
-    revisions * 25;
 
-  const vatAmount =
-    subtotal * (vat / 100);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  const total =
-    subtotal + vatAmount;
+    const { error } = await supabase
+      .from("quotes")
+      .insert({
+        user_id: user.id,
 
-  const saveQuote = () => {
-    if (!client.trim()) {
-      alert("Introduce un cliente");
+        client,
+        project,
+        project_type: projectType,
+
+        hours,
+        rate,
+
+        complexity,
+        revisions,
+        urgency,
+
+        cost,
+        subtotal,
+        vat_amount: vatAmount,
+        total,
+        profit,
+
+        status: "Pendiente",
+        notes: "",
+      });
+
+
+    if (error) {
+      console.error(error);
+      alert("Error al guardar en Supabase");
       return;
     }
 
-    if (!project.trim()) {
-      alert("Introduce un proyecto");
-      return;
-    }
 
-    onSave({
-      id: Date.now(),
+    alert("Presupuesto guardado correctamente");
 
-      favorite: false,
-      status: "Pendiente",
-notes: "",
-favorite: false,
-      client,
-      project,
-      projectType,
 
-      hours,
-      rate,
-
-      complexity,
-      revisions,
-      urgency,
-
-      vat,
-
-      subtotal:
-        subtotal.toFixed(2),
-
-      vatAmount:
-        vatAmount.toFixed(2),
-
-      total:
-        total.toFixed(2),
-
-      date:
-        new Date().toLocaleDateString(),
-    });
-
+    // limpiar formulario
     setClient("");
     setProject("");
+    setProjectType("");
   };
 
+
   return (
-    <div>
-      <h2>
-        Calculadora de Presupuestos
-      </h2>
+    <form onSubmit={handleSubmit}>
+
 
       <div>
         <label>Cliente</label>
@@ -92,7 +84,9 @@ favorite: false,
         />
       </div>
 
+
       <br />
+
 
       <div>
         <label>Proyecto</label>
@@ -107,7 +101,9 @@ favorite: false,
         />
       </div>
 
+
       <br />
+
 
       <div>
         <label>
@@ -118,246 +114,129 @@ favorite: false,
 
         <select
           value={projectType}
-          onChange={(e) => {
-            const type =
-              e.target.value;
-
-            setProjectType(type);
-
-            if (
-              type ===
-              "Landing Page"
-            )
-              setHours(15);
-
-            if (
-              type ===
-              "Web Corporativa"
-            )
-              setHours(40);
-
-            if (
-              type ===
-              "Ecommerce"
-            )
-              setHours(80);
-
-            if (
-              type ===
-              "App Móvil"
-            )
-              setHours(120);
-
-            if (
-              type ===
-              "SaaS"
-            )
-              setHours(200);
-          }}
+          onChange={(e) =>
+            setProjectType(e.target.value)
+          }
         >
-          <option>
-            Landing Page
+          <option value="">
+            Selecciona
           </option>
 
-          <option>
-            Web Corporativa
+          <option value="Web">
+            Web
           </option>
 
-          <option>
-            Ecommerce
+          <option value="Diseño">
+            Diseño
           </option>
 
-          <option>
-            App Móvil
+          <option value="App">
+            App
           </option>
 
-          <option>
-            SaaS
-          </option>
         </select>
+
       </div>
+
 
       <br />
 
-      <div>
-        <label>
-          Horas estimadas
-        </label>
 
+      <div>
+        <label>Horas</label>
         <br />
 
         <input
           type="number"
           value={hours}
           onChange={(e) =>
-            setHours(
-              Number(
-                e.target.value
-              )
-            )
+            setHours(Number(e.target.value))
           }
         />
+
       </div>
+
 
       <br />
 
-      <div>
-        <label>
-          Tarifa por hora (€)
-        </label>
 
+      <div>
+        <label>Precio/hora</label>
         <br />
 
         <input
           type="number"
           value={rate}
           onChange={(e) =>
-            setRate(
-              Number(
-                e.target.value
-              )
-            )
+            setRate(Number(e.target.value))
           }
         />
+
       </div>
+
 
       <br />
 
-      <div>
-        <label>
-          Complejidad
-        </label>
 
+      <div>
+        <label>Complejidad</label>
         <br />
 
-        <select
+        <input
+          type="text"
           value={complexity}
           onChange={(e) =>
-            setComplexity(
-              Number(
-                e.target.value
-              )
-            )
+            setComplexity(e.target.value)
           }
-        >
-          <option value={1}>
-            Baja
-          </option>
+        />
 
-          <option value={1.25}>
-            Media
-          </option>
-
-          <option value={1.5}>
-            Alta
-          </option>
-        </select>
       </div>
+
 
       <br />
 
-      <div>
-        <label>
-          Revisiones extra
-        </label>
 
+      <div>
+        <label>Revisiones</label>
         <br />
 
         <input
           type="number"
           value={revisions}
           onChange={(e) =>
-            setRevisions(
-              Number(
-                e.target.value
-              )
-            )
+            setRevisions(Number(e.target.value))
           }
         />
+
       </div>
+
 
       <br />
 
-      <div>
-        <label>
-          Urgencia
-        </label>
-
-        <br />
-
-        <select
-          value={urgency}
-          onChange={(e) =>
-            setUrgency(
-              Number(
-                e.target.value
-              )
-            )
-          }
-        >
-          <option value={1}>
-            Normal
-          </option>
-
-          <option value={1.25}>
-            Rápido
-          </option>
-
-          <option value={1.5}>
-            Urgente
-          </option>
-        </select>
-      </div>
-
-      <br />
 
       <div>
-        <label>IVA (%)</label>
-
+        <label>Urgencia</label>
         <br />
 
         <input
-          type="number"
-          value={vat}
+          type="text"
+          value={urgency}
           onChange={(e) =>
-            setVat(
-              Number(
-                e.target.value
-              )
-            )
+            setUrgency(e.target.value)
           }
         />
+
       </div>
 
-      <br />
-
-      <h3>
-        Subtotal:
-        {" "}
-        {subtotal.toFixed(2)} €
-      </h3>
-
-      <h3>
-        IVA:
-        {" "}
-        {vatAmount.toFixed(2)} €
-      </h3>
-
-      <h2>
-        Total:
-        {" "}
-        {total.toFixed(2)} €
-      </h2>
 
       <br />
 
-      <button
-        onClick={saveQuote}
-      >
+
+      <button type="submit">
         Guardar presupuesto
       </button>
-    </div>
+
+
+    </form>
   );
 }
-
-export default PriceCalculator;

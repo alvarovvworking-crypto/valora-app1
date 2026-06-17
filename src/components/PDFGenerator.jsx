@@ -147,6 +147,19 @@ doc.text(address, 140, 44);
       20,
       250
     );
+    doc.setFontSize(9);
+
+doc.text(
+  "Este presupuesto tiene una validez de 30 días desde su emisión.",
+  20,
+  260
+);
+
+doc.text(
+  "El inicio del proyecto requerirá la aceptación formal del presupuesto.",
+  20,
+  267
+);
 
     // Pie
     doc.line(20, 265, 190, 265);

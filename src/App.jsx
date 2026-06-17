@@ -1,33 +1,65 @@
-import { Routes, Route } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { supabase } from "./lib/supabase";
 
-import Landingpage from "./pages/Landingpage";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
-import Settings from "./pages/Settings";
 
 function App() {
-  return (
-    <Routes>
-      <Route
-        path="/"
-        element={<Landingpage />}
-      />
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-      <Route
-        path="/login"
-        element={<LoginPage />}
-      />
+  useEffect(() => {
+    let mounted = true;
 
-      <Route
-        path="/dashboard"
-        element={<Dashboard />}
-      />
+    const initSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
 
-      <Route
-        path="/settings"
-        element={<Settings />}
-      />
-    </Routes>
+      if (error) {
+        console.error("Error getting session:", error);
+      }
+
+      if (mounted) {
+        setSession(data.session);
+        setLoading(false);
+      }
+    };
+
+    initSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setLoading(false);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          background: "#080808",
+          color: "white",
+        }}
+      >
+        Cargando...
+      </div>
+    );
+  }
+
+  return session ? (
+    <Dashboard user={session.user} />
+  ) : (
+    <LoginPage />
   );
 }
 

@@ -20,6 +20,24 @@ function Settings() {
   const [address, setAddress] = useState(
     localStorage.getItem("address") || ""
   );
+  const [website, setWebsite] = useState(
+  localStorage.getItem("website") || ""
+);
+
+const [paymentTerms, setPaymentTerms] = useState(
+  localStorage.getItem("paymentTerms") ||
+    "50% al inicio y 50% al finalizar"
+);
+
+const [quoteValidity, setQuoteValidity] = useState(
+  localStorage.getItem("quoteValidity") ||
+    "30 días"
+);
+
+const [legalTerms, setLegalTerms] = useState(
+  localStorage.getItem("legalTerms") ||
+    "El inicio del proyecto requiere la aceptación formal del presupuesto."
+);
 
   const saveSettings = () => {
     localStorage.setItem(
@@ -46,6 +64,25 @@ function Settings() {
       "address",
       address
     );
+    localStorage.setItem(
+  "website",
+  website
+);
+
+localStorage.setItem(
+  "paymentTerms",
+  paymentTerms
+);
+
+localStorage.setItem(
+  "quoteValidity",
+  quoteValidity
+);
+
+localStorage.setItem(
+  "legalTerms",
+  legalTerms
+);
 
     alert("Configuración guardada");
   };
@@ -115,7 +152,55 @@ function Settings() {
 
       <br />
       <br />
+<br />
 
+<input
+  type="text"
+  placeholder="Sitio web"
+  value={website}
+  onChange={(e) =>
+    setWebsite(e.target.value)
+  }
+/>
+
+<br />
+<br />
+
+<input
+  type="text"
+  placeholder="Condiciones de pago"
+  value={paymentTerms}
+  onChange={(e) =>
+    setPaymentTerms(e.target.value)
+  }
+/>
+
+<br />
+<br />
+
+<input
+  type="text"
+  placeholder="Validez del presupuesto"
+  value={quoteValidity}
+  onChange={(e) =>
+    setQuoteValidity(e.target.value)
+  }
+/>
+
+<br />
+<br />
+
+<textarea
+  placeholder="Términos legales"
+  value={legalTerms}
+  onChange={(e) =>
+    setLegalTerms(e.target.value)
+  }
+  rows={5}
+/>
+
+<br />
+<br />
       <button onClick={saveSettings}>
         Guardar
       </button>
