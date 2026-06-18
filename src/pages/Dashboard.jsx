@@ -4,875 +4,601 @@ import { saveAs } from "file-saver";
 import PriceCalculator from "../components/PriceCalculator";
 import PDFGenerator from "../components/PDFGenerator";
 import { Link } from "react-router-dom";
-import { supabase } from "../supabaseClient";
-<div className="sidebar">
-  <h2>VALORA</h2>
 
-  <button>Dashboard</button>
-  <button>Nuevo presupuesto</button>
-  <button>Historial</button>
-  <button>Configuración</button>
-
-  <button onClick={handleLogout}>
-    Cerrar sesión
-  </button>
-</div>
 
 function Dashboard() {
 
+
+  const [quotes, setQuotes] = useState([]);
+  const [search, setSearch] = useState("");
+  const [user, setUser] = useState(null);
+
+
+
   const handleLogout = async () => {
-  await supabase.auth.signOut();
-};
+    await supabase.auth.signOut();
+  };
 
-const [quotes, setQuotes] = useState([]);
 
-const [search, setSearch] = useState("");
 
-const [user, setUser] = useState(null);
+  useEffect(()=>{
 
+    loadQuotes();
 
+  },[]);
 
 
-// Obtener usuario + presupuestos
 
-useEffect(()=>{
+  const loadQuotes = async()=>{
 
-loadQuotes();
 
-},[]);
+    const {data:{user}} = await supabase.auth.getUser();
 
 
+    setUser(user);
 
-const loadQuotes = async()=>{
 
+    if(!user) return;
 
-const {
 
-data:{user}
 
-}=await supabase.auth.getUser();
+    const {data,error} = await supabase
 
+    .from("quotes")
 
+    .select("*")
 
-setUser(user);
+    .eq("user_id", user.id)
 
+    .order("created_at",{ascending:false});
 
 
-if(!user) return;
 
+    if(error){
 
+      console.error(error);
 
-const {
+      return;
 
-data,
+    }
 
-error
 
-}=await supabase
+    setQuotes(data || []);
 
-.from("quotes")
+  };
 
-.select("*")
 
-.eq(
-"user_id",
-user.id
-)
 
-.order(
-"created_at",
-{
-ascending:false
-}
-);
 
 
+  const saveQuote = async (quote)=>{
 
-if(error){
 
-console.error(error);
+    if(!user){
 
-return;
+      alert("Usuario no encontrado");
 
-}
+      return;
 
+    }
 
 
-setQuotes(data);
 
+    const {data,error}=await supabase
 
+    .from("quotes")
 
-};
+    .insert({
 
+      user_id:user.id,
 
+      client:quote.client,
 
+      project:quote.project,
 
+      project_type:quote.projectType,
 
+      hours:quote.hours,
 
-// Guardar desde PriceCalculator
+      rate:quote.rate,
 
+      complexity:quote.complexity,
 
-const saveQuote = async (quote)=>{
+      revisions:quote.revisions,
 
+      urgency:quote.urgency,
 
-if(!user){
+      cost:quote.cost,
 
-alert("Usuario no encontrado");
+      subtotal:quote.subtotal,
 
-return;
+      vat_amount:quote.vatAmount,
 
-}
+      total:quote.total,
 
+      profit:quote.profit,
 
+      status:"Pendiente",
 
-const {
+      notes:"",
 
-data,
+      favorite:false
 
-error
+    })
 
-}=await supabase
+    .select()
 
-.from("quotes")
+    .single();
 
-.insert({
 
-user_id:user.id,
 
+    if(error){
 
-client:quote.client,
+      console.error(error);
 
-project:quote.project,
+      alert("Error guardando presupuesto");
 
-project_type:quote.projectType,
+      return;
 
+    }
 
-hours:quote.hours,
 
-rate:quote.rate,
 
+    setQuotes(prev=>[data,...prev]);
 
-complexity:quote.complexity,
+  };
 
-revisions:quote.revisions,
 
-urgency:quote.urgency,
 
 
-cost:quote.cost,
 
-subtotal:quote.subtotal,
 
-vat_amount:quote.vatAmount,
 
-total:quote.total,
+  const acceptedQuotes =
+    quotes.filter(q=>q.status==="Aceptado").length;
 
-profit:quote.profit,
 
+  const pendingQuotes =
+    quotes.filter(q=>q.status==="Pendiente").length;
 
-status:"Pendiente",
 
-notes:"",
+  const rejectedQuotes =
+    quotes.filter(q=>q.status==="Rechazado").length;
 
-favorite:false
 
 
+  const totalRevenue =
+    quotes.reduce(
+      (sum,q)=>sum+Number(q.total||0),
+      0
+    );
 
-})
 
-.select()
+  const averageQuote =
+    quotes.length
+    ? totalRevenue/quotes.length
+    : 0;
 
-.single();
 
 
 
 
-if(error){
+  const updateQuote = async(id,changes)=>{
 
-console.error(error);
 
-alert("Error guardando presupuesto");
+    await supabase
 
-return;
+    .from("quotes")
 
-}
+    .update(changes)
 
+    .eq("id",id);
 
 
-setQuotes(prev=>[
-data,
-...prev
-]);
 
+    setQuotes(prev=>
 
+      prev.map(q=>
 
-};
+        q.id===id
 
+        ? {...q,...changes}
 
+        : q
 
+      )
 
+    );
 
+  };
 
-// estadísticas
 
 
-const acceptedQuotes =
-quotes.filter(
-(q)=>q.status==="Aceptado"
-).length;
 
 
 
-const pendingQuotes =
-quotes.filter(
-(q)=>q.status==="Pendiente"
-).length;
+  const deleteQuote = async(id)=>{
 
 
+    await supabase
 
-const rejectedQuotes =
-quotes.filter(
-(q)=>q.status==="Rechazado"
-).length;
+    .from("quotes")
 
+    .delete()
 
+    .eq("id",id);
 
 
-const totalRevenue =
-quotes.reduce(
-(sum,q)=>
-sum+Number(q.total||0),
-0
-);
 
+    setQuotes(prev=>
 
+      prev.filter(q=>q.id!==id)
 
-const averageQuote =
-quotes.length
-?
-totalRevenue/quotes.length
-:
-0;
+    );
 
+  };
 
 
 
-const acceptanceRate =
-quotes.length
-?
-(
-acceptedQuotes/
-quotes.length*100
-).toFixed(1)
-:
-0;
 
 
 
 
+  const exportCSV = ()=>{
 
 
+    const headers=[
+      "ID",
+      "Cliente",
+      "Proyecto",
+      "Total",
+      "Estado",
+      "Fecha"
+    ];
 
 
 
-// actualizar estado
+    const rows=quotes.map(q=>[
 
+      q.id,
+      q.client,
+      q.project,
+      q.total,
+      q.status,
+      q.created_at
 
-const updateQuote = async(id,changes)=>{
+    ]);
 
 
-await supabase
 
-.from("quotes")
+    const csv=[headers,...rows]
 
-.update(changes)
+    .map(r=>r.join(","))
 
-.eq(
-"id",
-id
-);
+    .join("\n");
 
 
 
-setQuotes(prev=>
+    const blob=new Blob(
 
-prev.map(q=>
+      [csv],
 
-q.id===id
-?
-{
-...q,
-...changes
-}
-:
-q
+      {type:"text/csv;charset=utf-8;"}
 
-)
+    );
 
-);
 
 
-};
+    saveAs(blob,"presupuestos-valora.csv");
 
 
+  };
 
 
 
 
 
 
-// eliminar
 
+  return (
 
-const deleteQuote = async(id)=>{
+  <div style={{padding:"30px"}}>
 
 
-await supabase
 
-.from("quotes")
+    <div className="sidebar">
 
-.delete()
+      <h2>VALORA</h2>
 
-.eq(
-"id",
-id
-);
+      <button>Dashboard</button>
 
+      <button>Nuevo presupuesto</button>
 
+      <button>Historial</button>
 
-setQuotes(prev=>
+      <button>Configuración</button>
 
-prev.filter(q=>q.id!==id)
 
-);
+      <button onClick={handleLogout}>
+        Cerrar sesión
+      </button>
 
 
-};
+    </div>
 
 
 
 
 
+    <h1>
+      Dashboard Valora
+    </h1>
 
 
-// CSV
 
 
-const exportCSV = ()=>{
 
+    <div>
 
-const headers=[
-"ID",
-"Cliente",
-"Proyecto",
-"Total",
-"Estado",
-"Fecha"
-];
+      <strong>
+        Importe Medio
+      </strong>
 
+      <br/>
 
+      {averageQuote.toFixed(2)} €
 
-const rows =
-quotes.map(q=>[
+    </div>
 
-q.id,
 
-q.client,
 
-q.project,
 
-q.total,
 
-q.status,
+    <br/>
 
-q.created_at
 
-]);
 
 
 
-const csv =
-[headers,...rows]
+    <Link to="/settings">
 
-.map(r=>r.join(","))
+      <button>
+        Configuración Empresa
+      </button>
 
-.join("\n");
+    </Link>
 
 
 
-const blob =
-new Blob(
-[csv],
-{
-type:
-"text/csv;charset=utf-8;"
-}
-);
 
 
+    <button onClick={exportCSV}>
 
-saveAs(
-blob,
-"presupuestos-valora.csv"
-);
+      Exportar CSV
 
+    </button>
 
 
-};
 
 
 
+    <hr/>
 
 
 
 
 
+    <div>
 
-return (
+      <strong>Facturación:</strong>
 
-<div style={{padding:"30px"}}>
+      {totalRevenue.toFixed(2)} €
 
+      <br/>
 
+      <strong>Aceptados:</strong>
 
-<h1>
-Dashboard Valora
-</h1>
+      {acceptedQuotes}
 
 
+      <br/>
 
+      <strong>Pendientes:</strong>
 
+      {pendingQuotes}
 
-<div>
 
+      <br/>
 
-<strong>
-Importe Medio
-</strong>
+      <strong>Rechazados:</strong>
 
-<br/>
+      {rejectedQuotes}
 
-{averageQuote.toFixed(2)} €
 
+    </div>
 
-</div>
 
 
 
 
-<br/>
 
 
+    <PriceCalculator onSave={saveQuote}/>
 
-<Link to="/settings">
 
-<button>
 
-Configuración Empresa
 
-</button>
 
-</Link>
+    <hr/>
 
 
 
-<button onClick={exportCSV}>
 
-Exportar CSV
 
-</button>
+    <input
 
+      placeholder="Buscar..."
 
+      value={search}
 
+      onChange={(e)=>setSearch(e.target.value)}
 
+    />
 
-<hr/>
 
 
 
 
-<div>
+    <h2>
+      Historial
+    </h2>
 
 
-<strong>
-Facturación:
-</strong>
 
-{totalRevenue.toFixed(2)} €
 
 
 
-<br/>
+    {
 
-<strong>
-Aceptados:
-</strong>
+    quotes
 
-{acceptedQuotes}
+    .filter(q=>
 
+      q.client?.toLowerCase()
+      .includes(search.toLowerCase())
 
+      ||
 
-<br/>
+      q.project?.toLowerCase()
+      .includes(search.toLowerCase())
 
-<strong>
-Pendientes:
-</strong>
+    )
 
-{pendingQuotes}
 
+    .map(q=>(
 
 
-<br/>
+      <div
 
-<strong>
-Rechazados:
-</strong>
+      key={q.id}
 
-{rejectedQuotes}
+      style={{
+        border:"1px solid #ccc",
+        padding:"15px",
+        marginBottom:"10px",
+        borderRadius:"10px"
+      }}
 
 
+      >
 
-</div>
 
+        <h3>
+          PRES-{String(q.id).slice(-6)}
+        </h3>
 
 
+        <p>
+          Cliente: {q.client}
+        </p>
 
 
+        <p>
+          Proyecto: {q.project}
+        </p>
 
 
+        <p>
+          Total: {q.total} €
+        </p>
 
-<PriceCalculator
 
-onSave={saveQuote}
+        <p>
+          Estado: {q.status}
+        </p>
 
-/>
 
 
+        <PDFGenerator quote={q}/>
 
 
 
 
-<hr/>
 
+        <button onClick={()=>updateQuote(q.id,{status:"Aceptado"})}>
+          🟢 Aceptado
+        </button>
 
 
 
+        <button onClick={()=>updateQuote(q.id,{status:"Rechazado"})}>
+          🔴 Rechazado
+        </button>
 
-<input
 
-placeholder="Buscar..."
 
-value={search}
 
-onChange={(e)=>
-setSearch(e.target.value)
-}
 
-/>
+        <button onClick={()=>{
 
+          const note=prompt(
+            "Nota",
+            q.notes || ""
+          );
 
 
+          updateQuote(q.id,{notes:note});
 
 
+        }}>
 
+          📝 Nota
 
+        </button>
 
-<h2>
-Historial
-</h2>
 
 
 
 
+        <button onClick={()=>updateQuote(q.id,{favorite:!q.favorite})}>
 
+          {q.favorite ? "⭐" : "☆"}
 
+        </button>
 
-{
 
-quotes
 
-.filter(q=>
 
-q.client
-?.toLowerCase()
-.includes(search.toLowerCase())
 
-||
+        <button onClick={()=>deleteQuote(q.id)}>
 
-q.project
-?.toLowerCase()
-.includes(search.toLowerCase())
+          Eliminar
 
-)
+        </button>
 
 
-.map(q=>(
 
 
+        <button onClick={handleLogout}>
 
-<div
+          Cerrar sesión
 
-key={q.id}
+        </button>
 
-style={{
 
-border:"1px solid #ccc",
 
-padding:"15px",
+      </div>
 
-marginBottom:"10px",
 
-borderRadius:"10px"
+    ))
 
-}}
+    }
 
->
 
 
+  </div>
 
-
-<h3>
-
-PRES-{String(q.id).slice(-6)}
-
-</h3>
-
-
-
-
-<p>
-
-Cliente:
-{q.client}
-
-</p>
-
-
-
-<p>
-
-Proyecto:
-{q.project}
-
-</p>
-
-
-
-<p>
-
-Total:
-{q.total} €
-
-</p>
-
-
-
-
-
-<p>
-
-Estado:
-{q.status}
-
-</p>
-
-
-
-
-
-
-
-{q.notes &&
-
-<p>
-
-Nota:
-{q.notes}
-
-</p>
-
-}
-
-
-
-
-
-
-<PDFGenerator
-
-quote={q}
-
-/>
-
-
-
-
-
-
-
-<button
-
-onClick={()=>
-
-updateQuote(
-q.id,
-{
-status:"Aceptado"
-}
-)
-
-}
-
->
-
-🟢 Aceptado
-
-</button>
-
-
-
-
-
-
-<button
-
-onClick={()=>
-
-updateQuote(
-q.id,
-{
-status:"Rechazado"
-}
-)
-
-}
-
->
-
-🔴 Rechazado
-
-</button>
-
-
-
-
-
-
-
-<button
-
-onClick={()=>{
-
-
-const note =
-prompt(
-"Nota",
-q.notes || ""
-);
-
-
-
-updateQuote(
-
-q.id,
-
-{
-notes:note
-}
-
-);
-
-
-
-}}
-
->
-
-📝 Nota
-
-</button>
-
-
-
-
-
-
-
-<button
-
-onClick={()=>
-
-
-updateQuote(
-
-q.id,
-
-{
-favorite:
-!q.favorite
-}
-
-)
-
-
-}
-
->
-
-{
-
-q.favorite
-?
-"⭐"
-:
-"☆"
-
-}
-
-</button>
-
-
-
-
-
-
-
-<button
-
-onClick={()=>deleteQuote(q.id)}
-
->
-
-Eliminar
-
-</button>
-<button onClick={handleLogout}>
-  Cerrar sesión
-</button>
-
-
-
-
-
-</div>
-
-
-
-))
-
-
-}
-
-
-
-
-
-
-
-</div>
-
-
-);
-
+  );
 
 }
 
