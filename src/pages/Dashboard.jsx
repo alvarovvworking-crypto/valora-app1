@@ -1,62 +1,99 @@
-import { supabase } from "../lib/supabase";
 import { useState, useEffect } from "react";
-import { saveAs } from "file-saver";
-import PriceCalculator from "../components/PriceCalculator";
+import { supabase } from "../lib/supabase";
 import PDFGenerator from "../components/PDFGenerator";
-import { Link } from "react-router-dom";
 
 
 function Dashboard() {
 
 
-  const [quotes, setQuotes] = useState([]);
-  const [search, setSearch] = useState("");
-  const [user, setUser] = useState(null);
+  const [user,setUser] = useState(null);
+
+  const [quotes,setQuotes] = useState([]);
+
+  const [search,setSearch] = useState("");
 
 
+  const [client,setClient] = useState("");
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
+  const [project,setProject] = useState("");
+
+
+  const [hours,setHours] = useState(15);
+
+  const [rate,setRate] = useState(30);
+
+
+  const [complexity,setComplexity] = useState(1);
+
+  const [urgency,setUrgency] = useState(1);
+
+
+  const [revisions,setRevisions] = useState(0);
+
+  const [cost,setCost] = useState(0);
 
 
 
   useEffect(()=>{
 
-    loadQuotes();
+    getUser();
 
   },[]);
 
 
 
-  const loadQuotes = async()=>{
+  const getUser = async()=>{
 
 
-    const {data:{user}} = await supabase.auth.getUser();
+    const {
+      data:{user}
+
+    } = await supabase.auth.getUser();
+
+
+
+    if(!user){
+
+      return;
+
+    }
 
 
     setUser(user);
 
 
-    if(!user) return;
+    loadQuotes(user.id);
+
+
+  };
 
 
 
-    const {data,error} = await supabase
+
+
+  const loadQuotes = async(id)=>{
+
+
+    const {data,error}=await supabase
 
     .from("quotes")
 
     .select("*")
 
-    .eq("user_id", user.id)
+    .eq("user_id",id)
 
-    .order("created_at",{ascending:false});
+    .order(
+      "created_at",
+      {
+        ascending:false
+      }
+    );
 
 
 
     if(error){
 
-      console.error(error);
+      console.log(error);
 
       return;
 
@@ -65,22 +102,54 @@ function Dashboard() {
 
     setQuotes(data || []);
 
+
   };
 
 
 
 
 
-  const saveQuote = async (quote)=>{
+
+  const subtotal =
+
+    hours *
+
+    rate *
+
+    complexity *
+
+    urgency +
+
+    revisions * 25;
+
+
+
+
+  const vatAmount = subtotal * 0.21;
+
+
+  const total = subtotal + vatAmount;
+
+
+  const profit = subtotal - cost;
+
+
+
+
+
+
+
+  const saveQuote = async()=>{
 
 
     if(!user){
 
-      alert("Usuario no encontrado");
+      alert("No hay usuario");
 
       return;
 
     }
+
 
 
 
@@ -90,41 +159,55 @@ function Dashboard() {
 
     .insert({
 
+
       user_id:user.id,
 
-      client:quote.client,
 
-      project:quote.project,
+      client,
 
-      project_type:quote.projectType,
+      project,
 
-      hours:quote.hours,
 
-      rate:quote.rate,
+      hours,
 
-      complexity:quote.complexity,
+      rate,
 
-      revisions:quote.revisions,
 
-      urgency:quote.urgency,
+      complexity,
 
-      cost:quote.cost,
+      urgency,
 
-      subtotal:quote.subtotal,
 
-      vat_amount:quote.vatAmount,
+      revisions,
 
-      total:quote.total,
 
-      profit:quote.profit,
+      cost,
+
+
+      subtotal,
+
+
+      vat_amount:vatAmount,
+
+
+      total,
+
+
+      profit,
+
 
       status:"Pendiente",
 
+
       notes:"",
+
 
       favorite:false
 
+
+
     })
+
 
     .select()
 
@@ -132,11 +215,12 @@ function Dashboard() {
 
 
 
+
     if(error){
 
-      console.error(error);
+      console.log(error);
 
-      alert("Error guardando presupuesto");
+      alert(error.message);
 
       return;
 
@@ -144,7 +228,17 @@ function Dashboard() {
 
 
 
-    setQuotes(prev=>[data,...prev]);
+    setQuotes([data,...quotes]);
+
+
+
+    setClient("");
+
+    setProject("");
+
+
+    alert("Guardado");
+
 
   };
 
@@ -154,39 +248,11 @@ function Dashboard() {
 
 
 
-  const acceptedQuotes =
-    quotes.filter(q=>q.status==="Aceptado").length;
-
-
-  const pendingQuotes =
-    quotes.filter(q=>q.status==="Pendiente").length;
-
-
-  const rejectedQuotes =
-    quotes.filter(q=>q.status==="Rechazado").length;
-
-
-
-  const totalRevenue =
-    quotes.reduce(
-      (sum,q)=>sum+Number(q.total||0),
-      0
-    );
-
-
-  const averageQuote =
-    quotes.length
-    ? totalRevenue/quotes.length
-    : 0;
-
-
-
-
 
   const updateQuote = async(id,changes)=>{
 
 
-    await supabase
+    const {error}=await supabase
 
     .from("quotes")
 
@@ -196,21 +262,44 @@ function Dashboard() {
 
 
 
+    if(error){
+
+      console.log(error);
+
+      return;
+
+    }
+
+
+
     setQuotes(prev=>
 
       prev.map(q=>
 
         q.id===id
 
-        ? {...q,...changes}
+        ?
 
-        : q
+        {
+
+          ...q,
+
+          ...changes
+
+        }
+
+        :
+
+        q
 
       )
 
     );
 
+
   };
+
+
 
 
 
@@ -236,6 +325,24 @@ function Dashboard() {
 
     );
 
+
+  };
+
+
+
+
+
+
+
+  const logout = async()=>{
+
+
+    await supabase.auth.signOut();
+
+
+    window.location.reload();
+
+
   };
 
 
@@ -244,57 +351,15 @@ function Dashboard() {
 
 
 
-  const exportCSV = ()=>{
+  const revenue = quotes.reduce(
 
+    (a,b)=>
 
-    const headers=[
-      "ID",
-      "Cliente",
-      "Proyecto",
-      "Total",
-      "Estado",
-      "Fecha"
-    ];
+      a + Number(b.total || 0),
 
+      0
 
-
-    const rows=quotes.map(q=>[
-
-      q.id,
-      q.client,
-      q.project,
-      q.total,
-      q.status,
-      q.created_at
-
-    ]);
-
-
-
-    const csv=[headers,...rows]
-
-    .map(r=>r.join(","))
-
-    .join("\n");
-
-
-
-    const blob=new Blob(
-
-      [csv],
-
-      {type:"text/csv;charset=utf-8;"}
-
-    );
-
-
-
-    saveAs(blob,"presupuestos-valora.csv");
-
-
-  };
-
-
+  );
 
 
 
@@ -302,305 +367,517 @@ function Dashboard() {
 
   return (
 
-  <div style={{padding:"30px"}}>
 
+<div style={{
+padding:"30px"
+}}>
 
 
-    <div className="sidebar">
 
-      <h2>VALORA</h2>
+<h1>
+VALORA Dashboard
+</h1>
 
-      <button>Dashboard</button>
 
-      <button>Nuevo presupuesto</button>
 
-      <button>Historial</button>
+<button onClick={logout}>
+Cerrar sesión
+</button>
 
-      <button>Configuración</button>
 
 
-      <button onClick={handleLogout}>
-        Cerrar sesión
-      </button>
+<hr />
 
 
-    </div>
 
+<h2>
+Nuevo presupuesto
+</h2>
 
 
 
+<input
 
-    <h1>
-      Dashboard Valora
-    </h1>
+placeholder="Cliente"
 
+value={client}
 
+onChange={e=>setClient(e.target.value)}
 
+/>
 
 
-    <div>
+<br/><br/>
 
-      <strong>
-        Importe Medio
-      </strong>
 
-      <br/>
 
-      {averageQuote.toFixed(2)} €
+<input
 
-    </div>
+placeholder="Proyecto"
 
+value={project}
 
+onChange={e=>setProject(e.target.value)}
 
+/>
 
 
-    <br/>
+<br/><br/>
 
 
 
+<input
 
+type="number"
 
-    <Link to="/settings">
+value={hours}
 
-      <button>
-        Configuración Empresa
-      </button>
+onChange={e=>setHours(Number(e.target.value))}
 
-    </Link>
+/>
 
 
+<br/><br/>
 
 
 
-    <button onClick={exportCSV}>
+<input
 
-      Exportar CSV
+type="number"
 
-    </button>
+value={rate}
 
+onChange={e=>setRate(Number(e.target.value))}
 
+/>
 
 
+<br/><br/>
 
-    <hr/>
 
 
+<select
 
+value={complexity}
 
+onChange={e=>setComplexity(Number(e.target.value))}
 
-    <div>
+>
 
-      <strong>Facturación:</strong>
+<option value={1}>
+Baja
+</option>
 
-      {totalRevenue.toFixed(2)} €
+<option value={1.25}>
+Media
+</option>
 
-      <br/>
+<option value={1.5}>
+Alta
+</option>
 
-      <strong>Aceptados:</strong>
+</select>
 
-      {acceptedQuotes}
 
 
-      <br/>
+<br/><br/>
 
-      <strong>Pendientes:</strong>
 
-      {pendingQuotes}
 
 
-      <br/>
+<select
 
-      <strong>Rechazados:</strong>
+value={urgency}
 
-      {rejectedQuotes}
+onChange={e=>setUrgency(Number(e.target.value))}
 
+>
 
-    </div>
 
+<option value={1}>
+Normal
+</option>
 
 
+<option value={1.25}>
+Rápida
+</option>
 
 
+<option value={1.5}>
+Urgente
+</option>
 
 
-    <PriceCalculator onSave={saveQuote}/>
+</select>
 
 
 
+<br/><br/>
 
 
-    <hr/>
 
 
+<input
 
+type="number"
 
+value={revisions}
 
-    <input
+onChange={e=>setRevisions(Number(e.target.value))}
 
-      placeholder="Buscar..."
+/>
 
-      value={search}
 
-      onChange={(e)=>setSearch(e.target.value)}
 
-    />
+<br/><br/>
 
 
 
+<input
 
+type="number"
 
-    <h2>
-      Historial
-    </h2>
+value={cost}
 
+onChange={e=>setCost(Number(e.target.value))}
 
+/>
 
 
 
 
-    {
+<h3>
+Subtotal:
+{subtotal.toFixed(2)} €
+</h3>
 
-    quotes
 
-    .filter(q=>
 
-      q.client?.toLowerCase()
-      .includes(search.toLowerCase())
+<h3>
+IVA:
+{vatAmount.toFixed(2)} €
+</h3>
 
-      ||
 
-      q.project?.toLowerCase()
-      .includes(search.toLowerCase())
 
-    )
+<h2>
+TOTAL:
+{total.toFixed(2)} €
+</h2>
 
 
-    .map(q=>(
 
+<h3>
+Beneficio:
+{profit.toFixed(2)} €
+</h3>
 
-      <div
 
-      key={q.id}
 
-      style={{
-        border:"1px solid #ccc",
-        padding:"15px",
-        marginBottom:"10px",
-        borderRadius:"10px"
-      }}
+<button onClick={saveQuote}>
 
+Guardar presupuesto
 
-      >
+</button>
 
 
-        <h3>
-          PRES-{String(q.id).slice(-6)}
-        </h3>
 
 
-        <p>
-          Cliente: {q.client}
-        </p>
 
 
-        <p>
-          Proyecto: {q.project}
-        </p>
+<hr/>
 
 
-        <p>
-          Total: {q.total} €
-        </p>
 
 
-        <p>
-          Estado: {q.status}
-        </p>
 
+<h2>
+KPIs
+</h2>
 
 
-        <PDFGenerator quote={q}/>
+<p>
+Facturación:
+{revenue.toFixed(2)} €
+</p>
 
 
+<p>
+Aceptados:
+{
+quotes.filter(
+q=>q.status==="Aceptado"
+).length
+}
+</p>
 
 
+<p>
+Pendientes:
+{
+quotes.filter(
+q=>q.status==="Pendiente"
+).length
+}
+</p>
 
-        <button onClick={()=>updateQuote(q.id,{status:"Aceptado"})}>
-          🟢 Aceptado
-        </button>
 
+<p>
+Rechazados:
+{
+quotes.filter(
+q=>q.status==="Rechazado"
+).length
+}
+</p>
 
 
-        <button onClick={()=>updateQuote(q.id,{status:"Rechazado"})}>
-          🔴 Rechazado
-        </button>
 
 
 
 
 
-        <button onClick={()=>{
+<input
 
-          const note=prompt(
-            "Nota",
-            q.notes || ""
-          );
+placeholder="Buscar"
 
+value={search}
 
-          updateQuote(q.id,{notes:note});
+onChange={e=>setSearch(e.target.value)}
 
+/>
 
-        }}>
 
-          📝 Nota
 
-        </button>
 
 
+<h2>
+Historial
+</h2>
 
 
 
-        <button onClick={()=>updateQuote(q.id,{favorite:!q.favorite})}>
 
-          {q.favorite ? "⭐" : "☆"}
 
-        </button>
+{
 
+quotes
 
+.filter(q=>
 
+q.client
+?.toLowerCase()
+.includes(search.toLowerCase())
 
+)
 
-        <button onClick={()=>deleteQuote(q.id)}>
+.map(q=>(
 
-          Eliminar
 
-        </button>
+<div
 
+key={q.id}
 
+style={{
 
+border:"1px solid #ccc",
 
-        <button onClick={handleLogout}>
+padding:"15px",
 
-          Cerrar sesión
+margin:"15px 0"
 
-        </button>
+}}
 
+>
 
 
-      </div>
 
+<h3>
+{q.client}
+</h3>
 
-    ))
 
-    }
+<p>
+Proyecto:
+{q.project}
+</p>
 
 
+<p>
+Total:
+{q.total} €
+</p>
 
-  </div>
 
-  );
+
+<p>
+Estado:
+{q.status}
+</p>
+
+
+
+
+<PDFGenerator quote={q}/>
+
+
+
+
+<br/><br/>
+
+
+
+
+<button
+
+onClick={()=>updateQuote(
+q.id,
+{
+status:"Aceptado"
+}
+)}
+
+>
+
+🟢 Aceptado
+
+</button>
+
+
+
+
+
+<button
+
+onClick={()=>updateQuote(
+q.id,
+{
+status:"Pendiente"
+}
+)}
+
+>
+
+🟡 Pendiente
+
+</button>
+
+
+
+
+
+<button
+
+onClick={()=>updateQuote(
+q.id,
+{
+status:"Rechazado"
+}
+)}
+
+>
+
+🔴 Rechazado
+
+</button>
+
+
+
+
+
+
+<button
+
+onClick={()=>updateQuote(
+q.id,
+{
+favorite:!q.favorite
+}
+)}
+
+>
+
+{
+q.favorite
+?
+"⭐"
+:
+"☆"
+}
+
+</button>
+
+
+
+
+
+
+<button
+
+onClick={()=>{
+
+const n=prompt(
+"Nota",
+q.notes
+);
+
+
+updateQuote(
+q.id,
+{
+notes:n
+}
+);
+
+
+}}
+
+>
+
+📝 Nota
+
+</button>
+
+
+
+
+
+
+
+<button
+
+onClick={()=>deleteQuote(q.id)}
+
+>
+
+Eliminar
+
+</button>
+
+
+
+
+
+</div>
+
+
+
+))
+
 
 }
+
+
+
+</div>
+
+
+);
+
+
+}
+
 
 
 export default Dashboard;

@@ -1,242 +1,287 @@
 import { useState } from "react";
-import { supabase } from "../lib/supabase";
 
-export default function QuoteForm({ user }) {
+function PriceCalculator({ onSave }) {
   const [client, setClient] = useState("");
   const [project, setProject] = useState("");
-  const [projectType, setProjectType] = useState("");
 
-  const [hours, setHours] = useState(0);
-  const [rate, setRate] = useState(0);
+  const [projectType, setProjectType] =
+    useState("Landing Page");
 
-  const [complexity, setComplexity] = useState("");
-  const [revisions, setRevisions] = useState(0);
-  const [urgency, setUrgency] = useState("");
+  const [hours, setHours] = useState(15);
 
-  const [cost, setCost] = useState(0);
-  const [subtotal, setSubtotal] = useState(0);
-  const [vatAmount, setVatAmount] = useState(0);
-  const [total, setTotal] = useState(0);
-  const [profit, setProfit] = useState(0);
+  const [rate, setRate] = useState(30);
 
+  const [complexity, setComplexity] =
+    useState(1);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const [urgency, setUrgency] =
+    useState(1);
 
-    const { error } = await supabase
-      .from("quotes")
-      .insert({
-        user_id: user.id,
+  const [revisions, setRevisions] =
+    useState(0);
 
-        client,
-        project,
-        project_type: projectType,
+  const [cost, setCost] =
+    useState(0);
 
-        hours,
-        rate,
+  const vat = 21;
 
-        complexity,
-        revisions,
-        urgency,
+  const subtotal =
+    hours * rate * complexity * urgency +
+    revisions * 25;
 
-        cost,
-        subtotal,
-        vat_amount: vatAmount,
-        total,
-        profit,
+  const vatAmount =
+    subtotal * (vat / 100);
 
-        status: "Pendiente",
-        notes: "",
-      });
+  const total =
+    subtotal + vatAmount;
 
+  const profit =
+    subtotal - cost;
 
-    if (error) {
-      console.error(error);
-      alert("Error al guardar en Supabase");
+  const handleSave = () => {
+    if (!client.trim()) {
+      alert("Introduce un cliente");
       return;
     }
 
+    if (!project.trim()) {
+      alert("Introduce un proyecto");
+      return;
+    }
 
-    alert("Presupuesto guardado correctamente");
+    onSave({
+      client,
+      project,
+      projectType,
+      hours,
+      rate,
+      complexity,
+      urgency,
+      revisions,
+      cost,
+      subtotal,
+      vatAmount,
+      total,
+      profit,
+    });
 
-
-    // limpiar formulario
     setClient("");
     setProject("");
-    setProjectType("");
   };
 
-
   return (
-    <form onSubmit={handleSubmit}>
+    <div>
+      <h2>Nuevo Presupuesto</h2>
 
+      <input
+        placeholder="Cliente"
+        value={client}
+        onChange={(e) =>
+          setClient(e.target.value)
+        }
+      />
 
-      <div>
-        <label>Cliente</label>
-        <br />
+      <br />
+      <br />
 
-        <input
-          type="text"
-          value={client}
-          onChange={(e) =>
-            setClient(e.target.value)
-          }
-        />
-      </div>
+      <input
+        placeholder="Proyecto"
+        value={project}
+        onChange={(e) =>
+          setProject(e.target.value)
+        }
+      />
 
+      <br />
+      <br />
+
+      <select
+        value={projectType}
+        onChange={(e) => {
+          const type = e.target.value;
+
+          setProjectType(type);
+
+          if (type === "Landing Page")
+            setHours(15);
+
+          if (type === "Web Corporativa")
+            setHours(40);
+
+          if (type === "Ecommerce")
+            setHours(80);
+
+          if (type === "App Móvil")
+            setHours(120);
+
+          if (type === "SaaS")
+            setHours(200);
+        }}
+      >
+        <option>
+          Landing Page
+        </option>
+
+        <option>
+          Web Corporativa
+        </option>
+
+        <option>
+          Ecommerce
+        </option>
+
+        <option>
+          App Móvil
+        </option>
+
+        <option>
+          SaaS
+        </option>
+      </select>
+
+      <br />
+      <br />
+
+      <label>Horas</label>
 
       <br />
 
+      <input
+        type="number"
+        value={hours}
+        onChange={(e) =>
+          setHours(Number(e.target.value))
+        }
+      />
 
-      <div>
-        <label>Proyecto</label>
-        <br />
+      <br />
+      <br />
 
-        <input
-          type="text"
-          value={project}
-          onChange={(e) =>
-            setProject(e.target.value)
-          }
-        />
-      </div>
-
+      <label>Tarifa €/hora</label>
 
       <br />
 
+      <input
+        type="number"
+        value={rate}
+        onChange={(e) =>
+          setRate(Number(e.target.value))
+        }
+      />
 
-      <div>
-        <label>
-          Tipo de Proyecto
-        </label>
+      <br />
+      <br />
 
-        <br />
-
-        <select
-          value={projectType}
-          onChange={(e) =>
-            setProjectType(e.target.value)
-          }
-        >
-          <option value="">
-            Selecciona
-          </option>
-
-          <option value="Web">
-            Web
-          </option>
-
-          <option value="Diseño">
-            Diseño
-          </option>
-
-          <option value="App">
-            App
-          </option>
-
-        </select>
-
-      </div>
-
+      <label>Complejidad</label>
 
       <br />
 
+      <select
+        value={complexity}
+        onChange={(e) =>
+          setComplexity(
+            Number(e.target.value)
+          )
+        }
+      >
+        <option value={1}>
+          Baja
+        </option>
 
-      <div>
-        <label>Horas</label>
-        <br />
+        <option value={1.25}>
+          Media
+        </option>
 
-        <input
-          type="number"
-          value={hours}
-          onChange={(e) =>
-            setHours(Number(e.target.value))
-          }
-        />
+        <option value={1.5}>
+          Alta
+        </option>
+      </select>
 
-      </div>
+      <br />
+      <br />
 
+      <label>Urgencia</label>
 
       <br />
 
+      <select
+        value={urgency}
+        onChange={(e) =>
+          setUrgency(
+            Number(e.target.value)
+          )
+        }
+      >
+        <option value={1}>
+          Normal
+        </option>
 
-      <div>
-        <label>Precio/hora</label>
-        <br />
+        <option value={1.25}>
+          Rápida
+        </option>
 
-        <input
-          type="number"
-          value={rate}
-          onChange={(e) =>
-            setRate(Number(e.target.value))
-          }
-        />
+        <option value={1.5}>
+          Urgente
+        </option>
+      </select>
 
-      </div>
+      <br />
+      <br />
 
+      <label>Revisiones</label>
 
       <br />
 
+      <input
+        type="number"
+        value={revisions}
+        onChange={(e) =>
+          setRevisions(
+            Number(e.target.value)
+          )
+        }
+      />
 
-      <div>
-        <label>Complejidad</label>
-        <br />
+      <br />
+      <br />
 
-        <input
-          type="text"
-          value={complexity}
-          onChange={(e) =>
-            setComplexity(e.target.value)
-          }
-        />
-
-      </div>
-
+      <label>Coste interno</label>
 
       <br />
 
+      <input
+        type="number"
+        value={cost}
+        onChange={(e) =>
+          setCost(
+            Number(e.target.value)
+          )
+        }
+      />
 
-      <div>
-        <label>Revisiones</label>
-        <br />
+      <hr />
 
-        <input
-          type="number"
-          value={revisions}
-          onChange={(e) =>
-            setRevisions(Number(e.target.value))
-          }
-        />
+      <h3>
+        Subtotal: {subtotal.toFixed(2)} €
+      </h3>
 
-      </div>
+      <h3>
+        IVA: {vatAmount.toFixed(2)} €
+      </h3>
 
+      <h2>
+        Total: {total.toFixed(2)} €
+      </h2>
 
-      <br />
+      <h3>
+        Beneficio: {profit.toFixed(2)} €
+      </h3>
 
-
-      <div>
-        <label>Urgencia</label>
-        <br />
-
-        <input
-          type="text"
-          value={urgency}
-          onChange={(e) =>
-            setUrgency(e.target.value)
-          }
-        />
-
-      </div>
-
-
-      <br />
-
-
-      <button type="submit">
-        Guardar presupuesto
+      <button onClick={handleSave}>
+        Guardar Presupuesto
       </button>
-
-
-    </form>
+    </div>
   );
 }
+
+export default PriceCalculator;
